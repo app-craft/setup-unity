@@ -23,7 +23,6 @@ async function run() {
         if (unityModules.length > 0) {
             await installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild);
         }
-        await postInstall();
 
         core.setOutput('unity-version', unityVersion);
         core.setOutput('unity-path', unityPath);
@@ -45,8 +44,8 @@ async function installUnityHub() {
             await execute(`chmod +x "${unityHubPath}"`);
             await execute(`touch "${process.env.HOME}/.config/Unity Hub/eulaAccepted"`);
             try {
-                await execute('sudo apt-get update');
-                await execute('sudo apt-get install -y libgconf-2-4 libglu1 libasound2 libgtk2.0-0 libgtk-3-0 libnss3 zenity xvfb');
+                await execute('apt-get update');
+                await execute('apt-get install -y libgconf-2-4 libglu1 libasound2 libgtk2.0-0 libgtk-3-0 libnss3 zenity xvfb');
             } catch {
                 // skip 'command not found' error
             }
@@ -57,10 +56,10 @@ async function installUnityHub() {
         unityHubPath = '/Applications/Unity Hub.app/Contents/MacOS/Unity Hub';
         if (!fs.existsSync(unityHubPath)) {
             const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg');
-            await execute(`sudo hdiutil mount "${installerPath}"`);
+            await execute(`hdiutil mount "${installerPath}"`);
             const hubVolume = (await execute('ls /Volumes')).match(/Unity Hub.*/)[0];
             await execute(`ditto "/Volumes/${hubVolume}/Unity Hub.app" "/Applications/Unity Hub.app"`);
-            await execute(`sudo hdiutil detach "/Volumes/${hubVolume}"`);
+            await execute(`hdiutil detach "/Volumes/${hubVolume}"`);
             await execute(`rm "${installerPath}"`);
         }
 
@@ -83,8 +82,8 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
     if (!unityPath) {
         if (installPath) {
             if (process.platform === 'linux' || process.platform === 'darwin') {
-                await execute(`sudo mkdir -p "${installPath}"`);
-                await execute(`sudo chmod -R o+rwx "${installPath}"`);
+                await execute(`mkdir -p "${installPath}"`);
+                await execute(`chmod -R o+rwx "${installPath}"`);
             }
             await executeHub(unityHubPath, `install-path --set "${installPath}"`);
         }
@@ -106,16 +105,11 @@ async function installUnityModules(unityHubPath, unityVersion, unityModules, uni
     }
 }
 
-async function postInstall() {
-    if (process.platform === 'darwin') {
-        await execute('sudo mkdir -p "/Library/Application Support/Unity"');
-        await execute(`sudo chown -R ${process.env.USER} "/Library/Application Support/Unity"`);
-    }
-}
-
 async function findUnity(unityHubPath, unityVersion) {
     let unityPath = '';
-    const output = await executeHub(unityHubPath, `editors --installed`);
+    let output = await executeHub(unityHubPath, `editors --installed`);
+    output = output.split("(Intel)");
+    output = output.join("");
     const match = output.match(new RegExp(`${unityVersion} , installed at (.+)`));
     if (match) {
         unityPath = match[1];
