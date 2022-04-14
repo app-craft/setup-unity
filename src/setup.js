@@ -27,6 +27,7 @@ async function run() {
         core.setOutput('unity-version', unityVersion);
         core.setOutput('unity-path', unityPath);
         core.exportVariable('UNITY_PATH', unityPath);
+        core.exportVariable('UNITY_VERSION', unityVersion);
     } catch (error) {
         core.setFailed(error.message);
     }
