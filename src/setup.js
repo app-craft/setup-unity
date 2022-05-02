@@ -111,6 +111,8 @@ async function findUnity(unityHubPath, unityVersion) {
     let output = await executeHub(unityHubPath, `editors --installed`);
     output = output.split("(Intel)");
     output = output.join("");
+    output = output.split("(Apple silicon)");
+    output = output.join("");
     const match = output.match(new RegExp(`${unityVersion} , installed at (.+)`));
     if (match) {
         unityPath = match[1];
