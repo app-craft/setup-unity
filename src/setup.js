@@ -24,8 +24,7 @@ async function run() {
         if (unityModules.length > 0) {
             await installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild);
         }
-        await postInstall(selfHosted);
-
+        
         core.setOutput('unity-version', unityVersion);
         core.setOutput('unity-path', unityPath);
         core.exportVariable('UNITY_PATH', unityPath);
@@ -105,13 +104,6 @@ async function installUnityModules(unityHubPath, unityVersion, unityModules, uni
     const stdout = await executeHub(unityHubPath, `install-modules --version ${unityVersion} ${modulesArgs} ${childModulesArg}`);
     if (!stdout.includes('successfully') && !stdout.includes("it's already installed")) {
         throw new Error('unity modules installation failed');
-    }
-}
-
-async function postInstall(selfHosted) {
-    if (process.platform === 'darwin') {
-        await execute('mkdir -p "/Library/Application Support/Unity"', { sudo: !selfHosted });
-        await execute(`chown -R ${process.env.USER} "/Library/Application Support/Unity"`, { sudo: !selfHosted });
     }
 }
 
