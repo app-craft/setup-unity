@@ -7,6 +7,7 @@ const fs = require('fs');
 async function run() {
     try {
         let unityVersion = core.getInput('unity-version');
+        console.log("unityVersion:", unityVersion)
         let unityVersionChangeset = core.getInput('unity-version-changeset');
         const unityModules = getInputAsArray('unity-modules');
         const unityModulesChild = getInputAsBool('unity-modules-child');
