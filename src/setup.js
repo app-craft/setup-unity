@@ -51,11 +51,13 @@ async function run() {
 }
 
 async function installUnityHub(selfHosted) {
+    log("Define unityHubPath on platform:", process.platform);
     let unityHubPath = '';
     if (process.platform === 'linux') {
 
         unityHubPath = `${process.env.HOME}/Unity Hub/UnityHub.AppImage`;
         if (!fs.existsSync(unityHubPath)) {
+            log("Installing Unity Hub...");
             const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub.AppImage');
             await execute(`mkdir -p "${process.env.HOME}/Unity Hub" "${process.env.HOME}/.config/Unity Hub"`);
             await execute(`mv "${installerPath}" "${unityHubPath}"`);
@@ -64,34 +66,47 @@ async function installUnityHub(selfHosted) {
             try {
                 await execute('apt-get update', { sudo: !selfHosted });
                 await execute('apt-get install -y libgconf-2-4 libglu1 libasound2 libgtk2.0-0 libgtk-3-0 libnss3 zenity xvfb', { sudo: !selfHosted });
+                log("Unity Hub successfully installed");
             } catch {
                 // skip 'command not found' error
+                log("Unity Hub installed with errors");
             }
+        } else {
+            log("Unity Hub is already installed in:", unityHubPath);
         }
 
     } else if (process.platform === 'darwin') {
 
         unityHubPath = '/Applications/Unity Hub.app/Contents/MacOS/Unity Hub';
         if (!fs.existsSync(unityHubPath)) {
+            log("Installing Unity Hub...");
             const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg');
             await execute(`hdiutil mount "${installerPath}"`, { sudo: !selfHosted });
             const hubVolume = (await execute('ls /Volumes')).match(/Unity Hub.*/)[0];
             await execute(`ditto "/Volumes/${hubVolume}/Unity Hub.app" "/Applications/Unity Hub.app"`);
             await execute(`hdiutil detach "/Volumes/${hubVolume}"`, { sudo: !selfHosted });
             await execute(`rm "${installerPath}"`);
+            log("Unity Hub successfully installed");
+        } else {
+            log("Unity Hub is already installed in:", unityHubPath);
         }
 
     } else if (process.platform === 'win32') {
 
         unityHubPath = 'C:/Program Files/Unity Hub/Unity Hub.exe';
         if (!fs.existsSync(unityHubPath)) {
+            log("Installing Unity Hub...");
             const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe');
             await execute(`"${installerPath}" /s`);
             await execute(`del "${installerPath}"`);
+            log("Unity Hub successfully installed");
+        } else {
+            log("Unity Hub is already installed in:", unityHubPath);
         }
 
+    } else {
+        throw new Error('Unknown platform');
     }
-    else throw new Error('Unknown plarform');
     return unityHubPath;
 }
 
@@ -173,6 +188,7 @@ async function findVersionChangeset(unityVersion) {
         } else if (unityVersion.includes('f')) {
             versionPageUrl = 'https://unity3d.com/unity/whats-new/' + unityVersion.match(/[.0-9]+/)[0];
         }
+        log("on url:", versionPageUrl);
         const pagePath = await tc.downloadTool(versionPageUrl); // support retry
         const pageText = fs.readFileSync(pagePath, 'utf8');
         const match = pageText.match(new RegExp(`unityhub://${unityVersion}/([a-z0-9]+)`)) || pageText.match(/Changeset:<\/span>[ \n]*([a-z0-9]{12})/);
