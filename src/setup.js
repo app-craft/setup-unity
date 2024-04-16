@@ -4,8 +4,8 @@ const tc = require('@actions/tool-cache');
 const path = require('path');
 const fs = require('fs');
 
-function log(msg) {
-    console.log(msg)
+function log(...args) {
+    console.log(...args);
 }
 
 async function run() {
@@ -26,12 +26,12 @@ async function run() {
         "\ninstallPath:", installPath,
         "\nprojectPath:", projectPath,
         "\nselfHosted:", selfHosted
-    );
+        );
 
         if (!unityVersion) {
-            log("Can't get unityVersion from input, find it in project:", unityVersion)
+            log("Can't get unityVersion from input");
             [unityVersion, unityVersionChangeset] = await findProjectVersion(projectPath);
-            log("Found in project unityVersionChangeset:", unityVersionChangeset, "unityVersion:", unityVersion)
+            log("Found in project unityVersionChangeset:", unityVersionChangeset, "unityVersion:", unityVersion);
         } else if (!unityVersionChangeset) {
             unityVersionChangeset = await findVersionChangeset(unityVersion);
         }
@@ -143,7 +143,7 @@ async function findUnity(unityHubPath, unityVersion) {
 async function findProjectVersion(projectPath) {
     const filePath = path.join(projectPath, 'ProjectSettings/ProjectVersion.txt');
     if (fs.existsSync(filePath)) {
-        log("Try to find m_EditorVersionWithRevision in project:", filePath)
+        log("Try to find m_EditorVersionWithRevision in project:", filePath);
         const fileText = fs.readFileSync(filePath, 'utf8');
         const match1 = fileText.match(/m_EditorVersionWithRevision: (.+) \((.+)\)/);
         if (match1) {
@@ -162,7 +162,7 @@ async function findProjectVersion(projectPath) {
 }
 
 async function findVersionChangeset(unityVersion) {
-    log("Try to find unityVersionChangeset for ", unityVersion)
+    log("Try to find unityVersionChangeset for ", unityVersion);
     let changeset = '';
     try {
         let versionPageUrl;
