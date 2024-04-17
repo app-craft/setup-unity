@@ -39,6 +39,8 @@ async function run() {
         const unityPath = await installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted);
         if (unityModules.length > 0) {
             await installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild);
+        } else {
+            log("List of unityModules wasn't provided, skipping their installation")
         }
         
         core.setOutput('unity-version', unityVersion);
@@ -113,20 +115,21 @@ async function installUnityHub(selfHosted) {
 async function installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted) {
     let unityPath = await findUnity(unityHubPath, unityVersion);
     if (!unityPath) {
-        log('Unity not found, proceeding with installation...');
+        log('Unity Editor not found, proceeding with installation...');
         if (installPath) {
-            log(`Install path set: ${installPath}`);
             if (process.platform === 'linux' || process.platform === 'darwin') {
                 log(`Platform is ${process.platform}, preparing install directory...`);
                 await execute(`mkdir -p "${installPath}"`, { sudo: !selfHosted });
                 await execute(`chmod -R o+rwx "${installPath}"`, { sudo: !selfHosted });
-                log('Install directory prepared');
             }
             await executeHub(unityHubPath, `install-path --set "${installPath}"`);
-            log(`Install path configured in Unity Hub: ${installPath}`);
+            log("Unity Editor successfully installed");
+        } else {
+            log("Can't proceed with installation, installPath doesn't exist")
         }
         log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
         await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
+        log(`Unity ${unityVersion} successfully installed`);
         unityPath = await findUnity(unityHubPath, unityVersion);
         if (!unityPath) {
             throw new Error('Unity Editor installation failed');
@@ -139,11 +142,17 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
 async function installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild) {
     const modulesArgs = unityModules.map(s => `--module ${s.toLowerCase()}`).join(' ');
     const childModulesArg = unityModulesChild ? '--childModules' : '';
+    log(`Unity Modules will be installed with flag(s): ${modulesArgs} ${childModulesArg}`);
+
     const stdout = await executeHub(unityHubPath, `install-modules --version ${unityVersion} ${modulesArgs} ${childModulesArg}`);
+
     if (!stdout.includes('successfully') && !stdout.includes("it's already installed")) {
-        throw new Error('unity modules installation failed');
+        throw new Error('Unity modules installation failed');
     }
+
+    log('Unity modules installation completed successfully');
 }
+
 
 async function findUnity(unityHubPath, unityVersion) {
     log(`Looking for Unity version: ${unityVersion} at path: ${unityHubPath}`);
