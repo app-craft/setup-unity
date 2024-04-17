@@ -130,14 +130,13 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
         log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
         await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
         unityPath = await findUnity(unityHubPath, unityVersion);
+        log('Unity Editor installed successfully');
         if (!unityPath) {
-            console.error('Unity Editor installation failed.');
             throw new Error('Unity Editor installation failed');
         }
     } else {
         log('Unity already installed at found path');
     }
-    log('Unity Editor installed successfully');
     return unityPath;
 }
 
