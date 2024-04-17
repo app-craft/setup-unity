@@ -111,8 +111,6 @@ async function installUnityHub(selfHosted) {
 }
 
 async function installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted) {
-    log('Starting installation of Unity Editor');
-    log(`Looking for Unity version: ${unityVersion} at path: ${unityHubPath}`);
     let unityPath = await findUnity(unityHubPath, unityVersion);
     if (!unityPath) {
         log('Unity not found, proceeding with installation...');
@@ -130,12 +128,9 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
         log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
         await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
         unityPath = await findUnity(unityHubPath, unityVersion);
-        log('Unity Editor installed successfully');
         if (!unityPath) {
             throw new Error('Unity Editor installation failed');
         }
-    } else {
-        log('Unity already installed at found path');
     }
     return unityPath;
 }
@@ -151,6 +146,7 @@ async function installUnityModules(unityHubPath, unityVersion, unityModules, uni
 }
 
 async function findUnity(unityHubPath, unityVersion) {
+    log(`Looking for Unity version: ${unityVersion} at path: ${unityHubPath}`);
     let unityPath = '';
     let output = await executeHub(unityHubPath, `editors --installed`);
     output = output.split("(Intel)");
@@ -164,6 +160,7 @@ async function findUnity(unityHubPath, unityVersion) {
             unityPath += '/Contents/MacOS/Unity';
         }
     }
+    log('Unity Editor path found successfully:', unityPath);
     return unityPath;
 }
 
