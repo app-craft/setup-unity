@@ -5,7 +5,9 @@ const path = require('path');
 const fs = require('fs');
 
 function log(...args) {
-    console.log(...args);
+    if (getInputAsBool('verbose')){
+        console.log(...args);
+    }
 }
 
 async function run() {

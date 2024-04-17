@@ -44,6 +44,10 @@ Path where the Unity editor will be installed.
 
 If true, avoid to invoke commands with sudo. Default `false`.
 
+### `verbose`
+
+If true, print extended log. Default `false`.
+
 ## Outputs
 
 ### `unity-version`
