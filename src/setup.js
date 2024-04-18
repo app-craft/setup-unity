@@ -54,7 +54,7 @@ async function run() {
     }
 }
 
-async function installUnityHub() {
+async function installUnityHub(selfHosted) {
     log("Define unityHubPath on platform:", process.platform);
     let unityHubPath = '';
     if (process.platform === 'linux') {
@@ -75,7 +75,7 @@ async function installUnityHub() {
     return unityHubPath;
 }
 
-async function installUnityEditor(unityHubPath, unityVersion) {
+async function installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted) {
     let unityPath = await findUnity(unityHubPath, unityVersion);
     if (!unityPath) {
         log('Unity Editor not found. Automatic installation is disabled.');
