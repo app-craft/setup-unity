@@ -4,8 +4,9 @@ const tc = require('@actions/tool-cache');
 const path = require('path');
 const fs = require('fs');
 
+const verbose = getInputAsBool('verbose');
 function log(...args) {
-    if (getInputAsBool('verbose')){
+    if (verbose){
         console.log(...args);
     }
 }
@@ -19,6 +20,7 @@ async function run() {
         const installPath = core.getInput('install-path');
         const projectPath = core.getInput('project-path');
         const selfHosted = getInputAsBool('self-hosted');
+        const withInstallation = getInputAsBool('enable-installation')
 
         log("Inputs:",
         "\nunityVersion:", unityVersion,
@@ -37,12 +39,12 @@ async function run() {
         } else if (!unityVersionChangeset) {
             unityVersionChangeset = await findVersionChangeset(unityVersion);
         }
-        const unityHubPath = await installUnityHub(selfHosted);
-        const unityPath = await installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted);
+        const unityHubPath = await installUnityHub(selfHosted, withInstallation);
+        const unityPath = await installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted, withInstallation);
         if (unityModules.length > 0) {
-            await installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild);
+            await installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild, withInstallation);
         } else {
-            log("List of unityModules wasn't provided, skipping their installation")
+            log("List of unityModules wasn't provided, skipping their installation");
         }
         
         core.setOutput('unity-version', unityVersion);
@@ -54,26 +56,30 @@ async function run() {
     }
 }
 
-async function installUnityHub(selfHosted) {
+async function installUnityHub(selfHosted, withInstallation) {
     log("Define unityHubPath on platform:", process.platform);
     let unityHubPath = '';
     if (process.platform === 'linux') {
 
         unityHubPath = `${process.env.HOME}/Unity Hub/UnityHub.AppImage`;
         if (!fs.existsSync(unityHubPath)) {
-            log("Installing Unity Hub...");
-            const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub.AppImage');
-            await execute(`mkdir -p "${process.env.HOME}/Unity Hub" "${process.env.HOME}/.config/Unity Hub"`);
-            await execute(`mv "${installerPath}" "${unityHubPath}"`);
-            await execute(`chmod +x "${unityHubPath}"`);
-            await execute(`touch "${process.env.HOME}/.config/Unity Hub/eulaAccepted"`);
-            try {
-                await execute('apt-get update', { sudo: !selfHosted });
-                await execute('apt-get install -y libgconf-2-4 libglu1 libasound2 libgtk2.0-0 libgtk-3-0 libnss3 zenity xvfb', { sudo: !selfHosted });
-                log("Unity Hub successfully installed");
-            } catch {
-                // skip 'command not found' error
-                log("Unity Hub installed with errors");
+            if (withInstallation) {
+                log("Installing Unity Hub...");
+                const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHub.AppImage');
+                await execute(`mkdir -p "${process.env.HOME}/Unity Hub" "${process.env.HOME}/.config/Unity Hub"`);
+                await execute(`mv "${installerPath}" "${unityHubPath}"`);
+                await execute(`chmod +x "${unityHubPath}"`);
+                await execute(`touch "${process.env.HOME}/.config/Unity Hub/eulaAccepted"`);
+                try {
+                    await execute('apt-get update', { sudo: !selfHosted });
+                    await execute('apt-get install -y libgconf-2-4 libglu1 libasound2 libgtk2.0-0 libgtk-3-0 libnss3 zenity xvfb', { sudo: !selfHosted });
+                    log("Unity Hub successfully installed");
+                } catch {
+                    // skip 'command not found' error
+                    log("Unity Hub installed with errors");
+                }
+            } else {
+                log("Unity Hub not found. Automatic installation is disabled.");
             }
         } else {
             log("Unity Hub is already installed in:", unityHubPath);
@@ -83,14 +89,18 @@ async function installUnityHub(selfHosted) {
 
         unityHubPath = '/Applications/Unity Hub.app/Contents/MacOS/Unity Hub';
         if (!fs.existsSync(unityHubPath)) {
-            log("Installing Unity Hub...");
-            const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg');
-            await execute(`hdiutil mount "${installerPath}"`, { sudo: !selfHosted });
-            const hubVolume = (await execute('ls /Volumes')).match(/Unity Hub.*/)[0];
-            await execute(`ditto "/Volumes/${hubVolume}/Unity Hub.app" "/Applications/Unity Hub.app"`);
-            await execute(`hdiutil detach "/Volumes/${hubVolume}"`, { sudo: !selfHosted });
-            await execute(`rm "${installerPath}"`);
-            log("Unity Hub successfully installed");
+            if (withInstallation) {
+                log("Installing Unity Hub...");
+                const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.dmg');
+                await execute(`hdiutil mount "${installerPath}"`, { sudo: !selfHosted });
+                const hubVolume = (await execute('ls /Volumes')).match(/Unity Hub.*/)[0];
+                await execute(`ditto "/Volumes/${hubVolume}/Unity Hub.app" "/Applications/Unity Hub.app"`);
+                await execute(`hdiutil detach "/Volumes/${hubVolume}"`, { sudo: !selfHosted });
+                await execute(`rm "${installerPath}"`);
+                log("Unity Hub successfully installed");
+            } else {
+                log("Unity Hub not found. Automatic installation is disabled.");
+            }
         } else {
             log("Unity Hub is already installed in:", unityHubPath);
         }
@@ -99,40 +109,47 @@ async function installUnityHub(selfHosted) {
 
         unityHubPath = 'C:/Program Files/Unity Hub/Unity Hub.exe';
         if (!fs.existsSync(unityHubPath)) {
-            log("Installing Unity Hub...");
-            const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe');
-            await execute(`"${installerPath}" /s`);
-            await execute(`del "${installerPath}"`);
-            log("Unity Hub successfully installed");
+            if (withInstallation) {
+                log("Installing Unity Hub...");
+                const installerPath = await tc.downloadTool('https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe');
+                await execute(`"${installerPath}" /s`);
+                await execute(`del "${installerPath}"`);
+                log("Unity Hub successfully installed");
+            } else {
+                log("Unity Hub not found. Automatic installation is disabled.");
+            }
         } else {
             log("Unity Hub is already installed in:", unityHubPath);
         }
-
     } else {
         throw new Error('Unknown platform');
     }
     return unityHubPath;
 }
 
-async function installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted) {
+async function installUnityEditor(unityHubPath, installPath, unityVersion, unityVersionChangeset, selfHosted, withInstallation) {
     let unityPath = await findUnity(unityHubPath, unityVersion);
     if (!unityPath) {
-        log('Unity Editor not found, proceeding with installation...');
-        if (installPath) {
-            if (process.platform === 'linux' || process.platform === 'darwin') {
-                log(`Platform is ${process.platform}, preparing install directory...`);
-                await execute(`mkdir -p "${installPath}"`, { sudo: !selfHosted });
-                await execute(`chmod -R o+rwx "${installPath}"`, { sudo: !selfHosted });
+        if (withInstallation) {
+            log('Unity Editor not found, proceeding with installation...');
+            if (installPath) {
+                if (process.platform === 'linux' || process.platform === 'darwin') {
+                    log(`Platform is ${process.platform}, preparing install directory...`);
+                    await execute(`mkdir -p "${installPath}"`, { sudo: !selfHosted });
+                    await execute(`chmod -R o+rwx "${installPath}"`, { sudo: !selfHosted });
+                }
+                await executeHub(unityHubPath, `install-path --set "${installPath}"`);
+                log("Unity Editor successfully installed");
+            } else {
+                log("Can't proceed with installation, installPath doesn't exist")
             }
-            await executeHub(unityHubPath, `install-path --set "${installPath}"`);
-            log("Unity Editor successfully installed");
+            log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
+            await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
+            log(`Unity ${unityVersion} successfully installed`);
+            unityPath = await findUnity(unityHubPath, unityVersion);
         } else {
-            log("Can't proceed with installation, installPath doesn't exist")
+            log("Unity Editor not found. Automatic installation is disabled.");
         }
-        log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
-        await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
-        log(`Unity ${unityVersion} successfully installed`);
-        unityPath = await findUnity(unityHubPath, unityVersion);
         if (!unityPath) {
             throw new Error('Unity Editor installation failed');
         }
@@ -141,18 +158,22 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
 }
 
 
-async function installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild) {
-    const modulesArgs = unityModules.map(s => `--module ${s.toLowerCase()}`).join(' ');
-    const childModulesArg = unityModulesChild ? '--childModules' : '';
-    log(`Unity Modules will be installed with flag(s): ${modulesArgs} ${childModulesArg}`);
+async function installUnityModules(unityHubPath, unityVersion, unityModules, unityModulesChild, withInstallation) {
+    if (withInstallation) {
+        const modulesArgs = unityModules.map(s => `--module ${s.toLowerCase()}`).join(' ');
+        const childModulesArg = unityModulesChild ? '--childModules' : '';
+        log(`Unity Modules will be installed with flag(s): ${modulesArgs} ${childModulesArg}`);
 
-    const stdout = await executeHub(unityHubPath, `install-modules --version ${unityVersion} ${modulesArgs} ${childModulesArg}`);
+        const stdout = await executeHub(unityHubPath, `install-modules --version ${unityVersion} ${modulesArgs} ${childModulesArg}`);
 
-    if (!stdout.includes('successfully') && !stdout.includes("it's already installed")) {
-        throw new Error('Unity modules installation failed');
+        if (!stdout.includes('successfully') && !stdout.includes("it's already installed")) {
+            throw new Error('Unity modules installation failed');
+        }
+
+        log('Unity modules installation completed successfully');
+    } else {
+        log("Installation of Unity Modules skiped. Please install them manually");
     }
-
-    log('Unity modules installation completed successfully');
 }
 
 
@@ -259,4 +280,3 @@ function getInputAsBool(name, options) {
 }
 
 run();
-
