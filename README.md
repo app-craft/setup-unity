@@ -48,6 +48,10 @@ If true, avoid to invoke commands with sudo. Default `false`.
 
 If true, print extended log. Default `false`.
 
+###  `enable-installation`
+
+If true, missed packages and modules will be installed. Default `true`.
+
 ## Outputs
 
 ### `unity-version`

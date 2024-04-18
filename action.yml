@@ -54,6 +54,10 @@ inputs:
     description: If true, print extended log
     required: false
     default: false
+  enable-installation:
+    description: If true, missed packages and modules will be installed
+    required: false
+    default: true
   
 outputs:
   unity-version:
