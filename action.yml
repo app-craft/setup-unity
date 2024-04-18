@@ -50,6 +50,11 @@ inputs:
     description: If true, avoid to invoke commands with sudo
     required: false
     default: false
+  verbose:
+    description: If true, print extended log
+    required: false
+    default: false
+  
 outputs:
   unity-version:
     description: Unity version
