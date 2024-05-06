@@ -144,7 +144,7 @@ async function installUnityEditor(unityHubPath, installPath, unityVersion, unity
                 log("Can't proceed with installation, installPath doesn't exist")
             }
             log(`Installing Unity version ${unityVersion} with changeset ${unityVersionChangeset}`);
-            await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset}`);
+            await executeHub(unityHubPath, `install --version ${unityVersion} --changeset ${unityVersionChangeset} --architecture arm64`);
             log(`Unity ${unityVersion} successfully installed`);
             unityPath = await findUnity(unityHubPath, unityVersion);
         } else {
